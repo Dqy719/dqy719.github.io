@@ -153,7 +153,7 @@ def get_activity_history(email: str, max_items: int = 12) -> str:
 
 Three decisions here are text processing rather than API plumbing. HubSpot returns email bodies as HTML, so `_strip_html` normalizes them to plain text before they enter a prompt, since raw markup wastes context and confuses the model. Ordering is chronological because the model needs to know which turn came last in order to write something that reads as continuation rather than as a fresh start. And truncation happens on two axes, the twelve most recent items and 600 characters each, because prompt context is finite and one long thread will otherwise crowd out the Voice DNA and the task instructions.
 
-Every network call fails soft and returns an empty list rather than raising. A missing history should degrade the message to a hook-based one, not crash a batch run partway through and leave the sheet half written.
+Every network call fails soft and returns an empty list rather than raising an error. A missing history should degrade the message to a hook-based one, not crash a batch run partway through and leave the sheet half written.
 
 ## 6. Where the Design Broke: One Flag Carrying Two Facts
 
