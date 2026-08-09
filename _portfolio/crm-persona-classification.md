@@ -15,26 +15,44 @@ This project supported a Q2 outreach campaign for the B2B company where I intern
 I approached this as a text classification problem, using job titles as the primary signal. I designed a two-stage system: a rule-based matcher classified clear cases, while a language model handled the remaining ambiguous titles. I created the persona framework, system architecture, and initial classification rules, then used AI tools to support later improvements and implementation.
 
 
-## 1. The Problem: Job Titles Are Dirty Text
+## The Problem: Job Titles Are Dirty Text
 
-The CRM’s job-title data was messy and inconsistent. The same role could appear in several formats, while broad terms such as “president,” “data,” or “AI” could mean different things depending on context. Some fields were also blank, corrupted, or filled with placeholder text. As a result, simple keyword matching was not reliable. Stage 1 first normalized the titles and applied context-aware rules before assigning a persona.
+Before getting into what makes titles hard to classify, it helps to say what "persona" means in this context and why the CRM needed one.
 
-## 2. Two-Stage Architecture: Rules First, LLM for the Residual
+In B2B sales, a **persona** is a functional category that a contact belongs to based on what they do for a living — not their industry, not their seniority in the abstract, but the specific role they play in a buying decision. A "CRO" and a "VP of Sales" are the same persona (both own revenue targets) even though their titles are different. A "Head of RevOps" and a "Chief Revenue Officer" are different personas even though both contain "revenue," because one runs the tooling and the other owns the number. Personas are what let a sales team stop treating every contact identically and instead tailor outreach, timing, and messaging to what a specific kind of buyer actually cares about.
 
-The design decision that shaped everything was to not reach for the language model first.
+For this CRM I worked with ten personas, chosen with the sales team to cover the roles they most often engaged with:
 
-Most titles are unambiguous to a human and to a rule. "Chief Revenue Officer" is a CRO. Spending an API call and a model's judgment on it is wasteful, slow, and worst of all opaque: if a rule mislabels a title I can read the rule, but if a model mislabels one I have nothing to point at. So Stage 1 resolves everything it can with deterministic rules, which are free, instant, and auditable. Only the genuine residual, the titles that no rule can confidently place, goes to Stage 2 and the LLM.
+- **PE / Value Creation** — operating partners, portfolio-ops roles at private equity firms
+- **Sales Executive / CRO** — sales leadership at director level and above
+- **Revenue Operations / Sales Operations** — RevOps, SalesOps, GTM operations
+- **Sales Enablement / Learning** — enablement and L&D roles supporting sales
+- **CEO / Founder** — CEOs, founders, and company-level presidents
+- **People / Talent / HR** — CHROs, People Ops, talent acquisition
+- **Product / Technology / Data** — CTOs, CPOs, engineering, data, analytics
+- **IT / Security** — CIOs, CISOs, IT infrastructure roles
+- **Investor** — venture partners, angel investors
+- **Advisor** — external advisors and consultants
 
-This is a cascade. The cheap, transparent classifier runs first and handles the bulk; the expensive, flexible one is reserved for the hard cases the first stage explicitly flags. The handoff is a single boolean column written by Stage 1:
+The state of the CRM at the outset was that the persona field was blank for most contacts, so none of that segmentation was possible. A typical row looked something like this (The below data is just a sanitized example.):
 
-```python
-# Flag rows that should go to stage 2 (LLM): blank persona, not junk
-df["Needs_Stage2_LLM"] = needs_fill & (df["Persona"] == "") & (df["Persona_Match_Method"] != "junk")
-```
+| Record ID | First Name | Last Name | Email | Job Title | Persona | Company |
+|-----------|------------|-----------|-------|-----------|---------|---------|
+| 20000| Jeff | Smith | jeff.smith@rpgrogl.com | VP, IT | *(blank)* | ABCD |
 
-Stage 2 reads only the rows where this is true. Junk titles are deliberately excluded from the LLM entirely: there is no point paying a model to classify "Wrong email ID."
+*Illustrative row; not real contact data.*
 
-## 3. Stage 1: Rule-Based Matching
+The information the sales team needed to know — that Jeff belongs in the IT / Security persona and should therefore be handled differently from someone in Sales Executive / CRO — was implicit in the title but never made explicit in the field that the rest of the workflow depended on. Multiply this by several thousand rows and the persona column becomes the bottleneck that everything downstream is quietly waiting on.
+
+The CRM’s job-title data was messy and inconsistent. The same role could appear in several formats, while broad terms such as “president,” “data,” or “AI” could mean different things depending on context. Some fields were also blank, corrupted, or filled with placeholder text. As a result, simple keyword matching was not reliable. So the real problem is not lookup. It is normalizing inconsistent surface forms, disambiguating words by their local context, and controlling for ambiguity, before any classification can happen. Simple keyword matching, in short, was not reliable — the titles had to be normalized and processed with context-aware rules before a persona could be assigned.
+
+## Two-Stage Architecture: Rules First, LLM for the Residual
+
+## Two-Stage Architecture: Rules First, LLM for the Residual
+
+The design decision that shaped everything was to not reach for the language model first. Stage 1 processes each title with a rule-based algorithm to assign a persona. Any titles that Stage 1 cannot resolve are handed off to a language model in Stage 2. The handoff is a single boolean column written by Stage 1, and the sections below walk through each stage in detail.
+
+## Stage 1: Rule-Based Matching
 
 Every title is first put through normalization, so that the matcher sees one canonical form instead of the many ways the same title can be typed:
 
@@ -93,33 +111,50 @@ GENERIC_KEYWORDS_NEED_QUALIFIER = {"it", "security", "ai", "data", "analytics", 
 
 And when a title matches more than one persona, a precedence order decides the winner, so that a specific functional signal (Revenue Operations) beats a generic one (the CRO combo) when both fire on the same title.
 
-## 4. Debugging Stage 1
+## Debugging Stage 1
 
 The first version I wrote had a bug that was quietly expensive, and finding it taught me the most in this project.
 
-My original `pick_persona` was supposed to resolve the case where a title matched two or more personas by falling back to the precedence order. It did not. It returned `None` in that situation instead of consulting precedence, which meant every contact with a genuinely senior, multi-signal title, exactly the contacts that mattered most, was silently left unlabeled. Roughly 87 contacts were lost this way, and because the failure was silent, nothing crashed to tell me. I only found it by auditing why so many obviously senior titles had come back blank. The fix was to actually walk the precedence list:
+The function was supposed to resolve titles that matched two or more personas by falling back to a precedence order. Here is what I originally wrote:
 
-```python
+​```python
 def pick_persona(raw_title):
     matches = match_title(raw_title)
     if not matches:
         return None
-    for persona in PERSONA_PRECEDENCE:  # bug fix: precedence is now actually used
+    if len(matches) == 1:
+        return list(matches.keys())[0]
+    return None  # multiple matches — unresolved
+​```
+
+Reading it now, the bug is obvious: when a title matched exactly one persona, the function returned that persona; when it matched two or more, the function returned `None`. The precedence list I had spent time building was never consulted at all. Every contact with a genuinely senior, multi-signal title — exactly the contacts that mattered most — was silently left unlabeled. Roughly 87 contacts were lost this way, and because the failure was silent, nothing crashed to tell me. I only found the bug by auditing why so many obviously senior titles had come back blank in the output.
+
+The fix was to actually walk the precedence list in the multi-match case:
+
+​```python
+def pick_persona(raw_title):
+    matches = match_title(raw_title)
+    if not matches:
+        return None
+    for persona in PERSONA_PRECEDENCE:
         if persona in matches:
             return persona
     return None
 ```
 
-The second bug came from how pandas handles missing values. My match_method function checked chosen_persona is None, but pandas converted None to NaN, so the condition stopped working. I replaced it with pd.isna(), which correctly detects missing values inside a DataFrame.
-
-```python
-if chosen_persona is None or pd.isna(chosen_persona):
-    return "none"
-```
-
 I also added a junk filter for entries like “Wrong email ID” or “Vendor.” These rows are flagged for cleanup instead of being assigned a persona. A Persona_Match_Method column records how each result was classified, making the output easier to review.
 
-## 5. Stage 2: LLM Classification for the Residual
+
+## Stage 2: LLM Classification for the Residual
+
+The handoff between the two stages is a single boolean column that Stage 1 writes into the pandas DataFrame carrying the data through the whole pipeline:
+
+​```python
+# Flag rows that should go to stage 2 (LLM): blank persona, not junk
+df["Needs_Stage2_LLM"] = needs_fill & (df["Persona"] == "") & (df["Persona_Match_Method"] != "junk")
+​```
+
+Stage 2 reads only the rows where this is true. Junk titles are deliberately excluded from the LLM entirely: there is no point paying a model to classify "Wrong email ID."
 
 Stage 2 takes only the rows Stage 1 flagged and asks Claude Haiku to place them, using persona definitions I wrote to constrain the model to the same ten categories. I chose Haiku because this is a short, high-volume classification task where a small fast model is the right tool, and batched 25 titles per call to keep the number of requests reasonable across roughly 1,900 candidate rows.
 
@@ -160,7 +195,7 @@ for attempt in range(4):
         time.sleep(wait)
 ```
 
-## 6. Honest Limitations
+## Honest Limitations
 
 I want to be explicit about what this system does not do, because the gaps were deliberate decisions rather than oversights, and documenting them is part of the work.
 
@@ -168,7 +203,7 @@ Two large groups of contacts are intentionally left unclassified. COO, CFO, CMO,
 
 The other honest caveat is that the Stage 2 persona definitions are inferred from my Stage 1 keyword lists, not copied from an authoritative persona document, and the quality of every LLM classification depends entirely on those definitions being right. I flagged this directly in the code so that whoever runs it next knows to review the definitions before trusting the output.
 
-## 7. Collaboration and Tooling
+## Collaboration and Tooling
 
 The design of this system is mine: the ten-persona scheme, the decision to lead with rules and reserve the LLM for the residual, and the first working version of the Stage 1 matcher, which I wrote and then found the precedence bug in. From there I used AI tooling to help implement the later improvements, the combo proximity matching and the Stage 2 scaffolding, working from my own diagnoses and design intent. I am describing this plainly because it is how the work actually happened, and because knowing how to direct these tools, decide what they should build, and audit what they produce is itself part of working in this field now. The judgment about what to build and why was the part I owned, and it is the part that matters.
 
