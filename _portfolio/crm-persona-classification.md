@@ -6,7 +6,7 @@ collection: portfolio
 
 **Tools & Technologies:** Python, pandas, regular expressions, Anthropic Claude API (Haiku), gspread, Google Colab
 
-[View the source on GitHub](https://github.com/Dqy719/REPO-NAME)
+[View the source on GitHub](https://github.com/Dqy719/Persona-Classifier)
 
 ## Summary
 
