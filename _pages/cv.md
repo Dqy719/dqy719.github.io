@@ -26,6 +26,7 @@ Work experience
 
 
 **[PeopleLens](https://peoplelens.ai/)** — Technical GTM Intern · Remote · 04/2026 – 07/2026
+
 *Built the technical infrastructure for an early-stage AI startup's outbound sales workflow from scratch, as the sole technical contributor.*
 
 - Built end-to-end technical infrastructure for the sales workflow from scratch, spanning ICP identification, CRM cleanup, and outreach automation.
@@ -33,14 +34,16 @@ Work experience
 - Bulk-cleaned and classified a CRM of 4,000+ contacts using Python, NLP, and agentic AI to standardize field formats and assign each contact to a sales persona, replacing what would have been weeks of manual work and directly enabling the sales team to run persona-targeted outreach and quarterly campaigns instead of undifferentiated blasts. [See project write-up](/portfolio/crm-persona-classification/)
 
 
-**UMB Bank** — Finance Operations & RPA Automation · Milwaukee, WI · 04/2025 – Present
+**[UMB Bank](https://www.umb.com/)** — Finance Operations & RPA Automation · Milwaukee, WI · 04/2025 – Present
+
 *Bridging operations and engineering to bring a stalled RPA automation project to production for mutual fund reconciliation.*
 
 - Revived a long-stalled RPA automation project by bridging operations and engineering, translating daily mutual fund reconciliation workflows into structured requirements, cutting manual processing time by 20% and reducing human error by 30%.
 - Served as the key liaison between developers and operations teams, delivering a UiPath bot that automates end-to-end file retrieval, storage, and reconciliation, saving the team one hour weekly on repetitive tasks.
 
 
-**Good Samaritan Shelter** — Product Management Intern · Remote · 07/2025 – 10/2025
+**[Good Samaritan Shelter](https://www.goodsamaritanshelter.org/)** — Product Management Intern · Remote · 07/2025 – 10/2025
+
 *Co-led a Develop for Good team to redesign a homeless shelter's website, applying user research to reduce navigation friction for high-need users.*
 
 - Co-led a 6-person Develop for Good team to redesign a homeless shelter's website; conducted user research with social workers and shelter users to identify critical gaps in help-seeking navigation, reducing social worker inquiry volume by 85%.
@@ -48,6 +51,7 @@ Work experience
 
 
 **UC Santa Barbara** — NLP Research Assistant · Goleta, CA · 09/2023 – 06/2024
+
 *Built preprocessing and annotation pipelines for a large Taiwanese Mandarin corpus, producing training-ready datasets for downstream NLP tasks.*
 
 - Preprocessed and annotated 10,000+ Taiwanese Mandarin text corpora, applying tokenization and linguistic feature labeling (POS tags, syntactic structures) to build training-ready datasets for downstream NLP tasks.
