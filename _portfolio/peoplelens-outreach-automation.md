@@ -120,6 +120,8 @@ The selected tier is then injected into the prompt as a hard constraint, with th
 
 I chose rules over asking the LLM to judge intent. The rules are deterministic, auditable, free, and instant. An LLM judgment on the same field would have been more flexible and completely opaque, and it would have added a second API call per contact to a system already bound by write latency.
 
+The tradeoff is real, and I did not get to solve it within the time of my internship. The lexicon has no negation scoping, so a comment like "not interested" contains the substring "interest" and misroutes to the most aggressive CTA tier - the worst possible failure mode, since it treats an explicit rejection as an invitation. This is the general limitation of lexicon-based approaches: they see word identity but not word meaning. I mitigated the risk by making human review mandatory before send, so misroutes were caught before reaching a prospect, but mitigation is not a fix. Documenting the failure mode is itself part of the work.
+
 ## 5. Retrieving Conversation History from HubSpot
 
 For warm leads, a generic re-engagement is worse than nothing, so Path 1 pulls the actual prior conversation out of the CRM.
@@ -155,7 +157,67 @@ Three decisions here are text processing rather than API plumbing. HubSpot retur
 
 Every network call fails soft and returns an empty list rather than raising an error. A missing history should degrade the message to a hook-based one, not crash a batch run partway through and leave the sheet half written.
 
-## 6. Where the Design Broke: One Flag Carrying Two Facts
+## 6. Constructing the Prompts
+
+Once the routing decides which path a contact takes, the system builds a prompt specifically for that path. All three prompt builders share the same structural discipline: fixed sections in a fixed order, each labeled with a header the model can recognize as a boundary. The full prompt for each contact is assembled from four kinds of content:
+
+1. **Voice DNA**, loaded verbatim from the Markdown file described in section 3 — tone rules, structural rules, banned constructions, few-shot examples grouped by relationship temperature.
+2. **Contact facts**, injected as key-value lines: name, company, role, location, LinkedIn URL, and (for warm and replied paths) the personalization hook the intern wrote.
+3. **Path-specific context**, which differs by branch: prior conversation history from HubSpot for the warm path, the previous three touch drafts for the replied path, none for the cold path.
+4. **A task block** with explicit constraints - length limits, banned filler phrases, and for the replied path, the exact CTA sentence the model must end on.
+
+Here is the warm-path prompt builder in full, since it shows the pattern most clearly:
+
+​```python
+def build_warm_prompt(contact: dict, voice_dna: str, activity_history: str) -> str:
+    return f"""You are writing a LinkedIn outreach message on behalf of the CEO.
+
+=== VOICE DNA ===
+{voice_dna}
+
+=== CONTACT ===
+Name: {contact['name']}
+Company: {contact['company']}
+Role: {contact['role']}
+
+=== CONTEXT ===
+This contact previously AGREED TO MEET. They are a warm lead, not a cold prospect.
+Do NOT use cold outreach framing. Write as a friendly re-engagement.
+
+=== PRIOR CONVERSATION HISTORY (from HubSpot) ===
+{activity_history or 'No history found in HubSpot. Rely on personalization hook instead.'}
+
+=== PERSONALIZATION HOOK (written by intern — may have grammar errors, clean up) ===
+"{contact['personalization']}"
+
+=== TASK ===
+Write a short warm re-engagement message.
+
+Rules:
+- 2-3 sentences max. Warm, light, conversational. Like texting someone you already know.
+- Reference or echo something from the prior conversation history if available.
+- Weave in the personalization hook naturally, grammar cleaned up.
+- No em dashes. No filler openers. No hard sell.
+- Output only the message text. No labels. No explanation.
+"""
+​```
+
+Three principles hold across all three prompt builders. First, **each section header is a delimiter the model can attend to**, headers like `=== VOICE DNA ===` and `=== CONTACT ===` create structural boundaries that make the prompt easier for the model to parse than a wall of prose would be. Second, **injected content is always labeled with its provenance** , the personalization hook is explicitly marked as "written by intern - may have grammar errors, clean up", so the model knows to treat it as raw input to be polished rather than as an authoritative instruction. Third, **constraints live in an explicit rules block at the bottom** — banned phrases, length caps, and exact required sentences are enumerated as a checklist rather than described in prose, because a list is easier to follow than a paragraph.
+
+The replied path adds one more layer on top of this structure: the CTA tier chosen by the lexicon classifier in section 4 is passed in as a hard constraint, with the exact final sentence the model must end on:
+
+​```python
+=== CTA TIER SELECTED: {cta_tier.upper()} ===
+End the message with this exact sentence:
+"{cta_sentence}"
+​```
+
+The model composes the body of the message, but does not get to choose the ask. The model writes the middle and the routing decides the ending. This is the same augmented-authoring principle from section 1 applied at the sentence level: human logic where judgment matters, model composition where it does not.
+
+Neither of these prompt builders was correct on the first draft. The first version of the warm-path prompt asked for "a message" without specifying length, and the model produced formal three-paragraph replies that read exactly wrong for a warm re-engagement. Adding "2-3 sentences max" and the concrete style examples in the Voice DNA file was what pulled the outputs into range. This was the pattern throughout: every prompt improved most from adding explicit negatives ("no em dashes", "no filler openers", "no 'I hope this finds you well'") and concrete length caps, not from clever positive instructions. What the model should not do turned out to be more important to specify than what it should.
+
+
+## 7. Where the Design Broke: One Flag Carrying Two Facts
 
 The most instructive failure in this project was not a crash. It was a data modeling mistake that I did not recognize as one until it made a feature impossible to build.
 
@@ -175,12 +237,12 @@ The lesson I took is about the order of reasoning. Before adding a branch, write
 
 There is also a piece of residue I want to be honest about, because it is still visible in the code in section 4. `decide_cta_tier` still accepts `has_replied` as a parameter and still contains a branch returning `"soft"` for non-repliers. After the refactor, that branch is unreachable: `main()` only calls the function when `has_replied` is already Y, so `replied` is always True inside it, and the soft tier survives in `CTA_EXAMPLES` without ever being selected. It is dead code, a fossil of the two-path design, and I did not clean it up before the internship ended. I noticed it while writing this description rather than while writing the code, which is the honest version of the lesson: the refactor was never finished, only made to work.
 
-## 7. Smaller Failures, and the Problem That Was Not Technical
+## 8. Smaller Failures, and the Problem That Was Not Technical
 The hardest problem, though, was not technical at all.
 
 The drafts were judged underwhelming, and the initial read from leadership was that the agent's architecture was wrong. This is the moment where it would have been easy to start rebuilding. Instead I went back through the outputs and lined each one up against the input it had been given. The pattern was immediate: the personalization field was almost always filled with the weakest available angle, usually a job title or a career transition, because the teammate filling it in had never been given a priority order for what makes a good hook. The architecture was doing exactly what it was designed to do with the input it was handed.
 
-I documented the diagnosis, proposed a personalization priority hierarchy that ranked personal interests first and job title last, and later built a separate scoring agent to raise input quality at the source.
+I documented the diagnosis, proposed a personalization priority hierarchy that ranked personal interests first and job title last, and later stood up a lightweight scoring assistant, implemented as a Custom GPT with an internal rubric document rather than as code, to raise input quality at the source. The Custom GPT and its rubric live outside this repository and are not part of the sanitized code shared here.
 
 That episode taught me the thing I most want to keep from this internship. In a system that deliberately splits work between a human and a model, output quality is bounded by whichever side is weaker, and when the output disappoints, everyone's instinct is to blame the model. Being able to show where the loss actually occurred, with evidence rather than assertion, turned out to be more valuable than any code I wrote that month. I also learned that I had not explained the augmented authoring design well enough in the first place. If the stakeholder had understood from the start that personalization was human-selected by design, the input quality problem would have been visible to everyone, not just to me.
 
