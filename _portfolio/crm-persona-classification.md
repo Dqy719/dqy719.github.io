@@ -138,12 +138,11 @@ def pick_persona(raw_title):
         if persona in matches:
             return persona
     return None
-```
+​```
 
-I also added a junk filter for entries like “Wrong email ID” or “Vendor.” These rows are flagged for cleanup instead of being assigned a persona. A Persona_Match_Method column records how each result was classified, making the output easier to review.
+I also added a junk filter for entries like "Wrong email ID" or "Vendor." These rows are flagged for cleanup instead of being assigned a persona. A `Persona_Match_Method` column records how each result was classified, making the output easier to review.
 
-
-## Stage 2: LLM Classification for the Residual
+### Stage 2: LLM Classification for the Residual
 
 The handoff between the two stages is a single boolean column that Stage 1 writes into the pandas DataFrame carrying the data through the whole pipeline:
 
@@ -158,7 +157,7 @@ Stage 2 takes only the rows Stage 1 flagged and asks Claude Haiku to place them,
 
 Before spending any API calls, Stage 2 filters out inputs an LLM cannot reliably handle. Blank titles are skipped. So are garbled ones, and the garbage detector is where the linguistic care shows:
 
-```python
+​```python
 def is_garbled(title):
     if is_blank(title):
         return False
@@ -174,7 +173,7 @@ def is_garbled(title):
     if len(s) > 0 and non_ascii / len(s) > 0.5 and not has_cjk_or_hangul:
         return True
     return False
-```
+​```
 
 The subtle requirement here is that a high proportion of non-ASCII characters must not be treated as corruption on its own, because a legitimate Chinese, Japanese, Korean, or accented-Latin title would trip that wire. The detector explicitly exempts CJK and Hangul ranges, so it flags true mojibake while leaving real non-English titles alone. Getting this wrong would mean silently discarding every international contact.
 
