@@ -43,19 +43,19 @@ The pipeline reads the sheet, classifies each contact into one of three relation
 The routing logic is the spine of the script:
 
 ```python
-# Decide message type — three paths
+# Decide message type - three paths
 if agreed.lower() in ("y", "yes"):
-    # Path 1: warm lead — pull HubSpot history, write warm re-engagement
+    # Path 1: warm lead - pull HubSpot history, write warm re-engagement
     msg_type = "warm (agreed to meet)"
     history = get_activity_history(email)
     prompt = build_warm_prompt(contact, voice_dna, history)
 elif has_replied.lower() in ("y", "yes"):
-    # Path 2: replied but never agreed to meet — LinkedIn DM with CTA tier
+    # Path 2: replied but never agreed to meet - LinkedIn DM with CTA tier
     cta_tier = decide_cta_tier(has_replied, comments)
     msg_type = f"linkedin ({cta_tier})"
     prompt = build_linkedin_prompt(contact, voice_dna, cta_tier)
 else:
-    # Path 3: never replied — whitepaper email
+    # Path 3: never replied - whitepaper email
     msg_type = "email (whitepaper)"
     prompt = build_email_prompt(contact, voice_dna)
 ```
@@ -103,9 +103,9 @@ INTEREST_KEYWORDS = [
 
 def decide_cta_tier(has_replied: str, comments: str) -> str:
     """
-    Specific  — replied AND comments suggest prior interest
-    Value-led — replied but no clear interest signal
-    Soft      — never replied (LinkedIn DM case)
+    Specific  - replied AND comments suggest prior interest
+    Value-led - replied but no clear interest signal
+    Soft      - never replied (LinkedIn DM case)
     """
     replied = has_replied.lower() in ("y", "yes")
     if not replied:
@@ -161,14 +161,14 @@ Every network call fails soft and returns an empty list rather than raising an e
 
 Once the routing decides which path a contact takes, the system builds a prompt specifically for that path. All three prompt builders share the same structural discipline: fixed sections in a fixed order, each labeled with a header the model can recognize as a boundary. The full prompt for each contact is assembled from four kinds of content:
 
-1. **Voice DNA**, loaded verbatim from the Markdown file described in section 3 — tone rules, structural rules, banned constructions, few-shot examples grouped by relationship temperature.
+1. **Voice DNA**, loaded verbatim from the Markdown file described in section 3 - tone rules, structural rules, banned constructions, few-shot examples grouped by relationship temperature.
 2. **Contact facts**, injected as key-value lines: name, company, role, location, LinkedIn URL, and (for warm and replied paths) the personalization hook the intern wrote.
 3. **Path-specific context**, which differs by branch: prior conversation history from HubSpot for the warm path, the previous three touch drafts for the replied path, none for the cold path.
 4. **A task block** with explicit constraints - length limits, banned filler phrases, and for the replied path, the exact CTA sentence the model must end on.
 
 Here is the warm-path prompt builder in full, since it shows the pattern most clearly:
 
-​```python
+```python
 def build_warm_prompt(contact: dict, voice_dna: str, activity_history: str) -> str:
     return f"""You are writing a LinkedIn outreach message on behalf of the CEO.
 
@@ -187,7 +187,7 @@ Do NOT use cold outreach framing. Write as a friendly re-engagement.
 === PRIOR CONVERSATION HISTORY (from HubSpot) ===
 {activity_history or 'No history found in HubSpot. Rely on personalization hook instead.'}
 
-=== PERSONALIZATION HOOK (written by intern — may have grammar errors, clean up) ===
+=== PERSONALIZATION HOOK (written by intern - may have grammar errors, clean up) ===
 "{contact['personalization']}"
 
 === TASK ===
@@ -200,22 +200,21 @@ Rules:
 - No em dashes. No filler openers. No hard sell.
 - Output only the message text. No labels. No explanation.
 """
-​```
+```
 
-Three principles hold across all three prompt builders. First, **each section header is a delimiter the model can attend to**, headers like `=== VOICE DNA ===` and `=== CONTACT ===` create structural boundaries that make the prompt easier for the model to parse than a wall of prose would be. Second, **injected content is always labeled with its provenance** , the personalization hook is explicitly marked as "written by intern - may have grammar errors, clean up", so the model knows to treat it as raw input to be polished rather than as an authoritative instruction. Third, **constraints live in an explicit rules block at the bottom** — banned phrases, length caps, and exact required sentences are enumerated as a checklist rather than described in prose, because a list is easier to follow than a paragraph.
+Three principles hold across all three prompt builders. First, **each section header is a delimiter the model can attend to** - headers like `=== VOICE DNA ===` and `=== CONTACT ===` create structural boundaries that make the prompt easier for the model to parse than a wall of prose would be. Second, **injected content is always labeled with its provenance** - the personalization hook is explicitly marked as "written by intern - may have grammar errors, clean up", so the model knows to treat it as raw input to be polished rather than as an authoritative instruction. Third, **constraints live in an explicit rules block at the bottom** - banned phrases, length caps, and exact required sentences are enumerated as a checklist rather than described in prose, because a list is easier to follow than a paragraph.
 
 The replied path adds one more layer on top of this structure: the CTA tier chosen by the lexicon classifier in section 4 is passed in as a hard constraint, with the exact final sentence the model must end on:
 
-​```python
+```python
 === CTA TIER SELECTED: {cta_tier.upper()} ===
 End the message with this exact sentence:
 "{cta_sentence}"
-​```
+```
 
-The model composes the body of the message, but does not get to choose the ask. The model writes the middle and the routing decides the ending. This is the same augmented-authoring principle from section 1 applied at the sentence level: human logic where judgment matters, model composition where it does not.
+The model composes the body of the message, but does not get to choose the ask. The model writes the middle, and the routing decides the ending. This is the same augmented-authoring principle from section 1 applied at the sentence level: human logic where judgment matters, model composition where it does not.
 
 Neither of these prompt builders was correct on the first draft. The first version of the warm-path prompt asked for "a message" without specifying length, and the model produced formal three-paragraph replies that read exactly wrong for a warm re-engagement. Adding "2-3 sentences max" and the concrete style examples in the Voice DNA file was what pulled the outputs into range. This was the pattern throughout: every prompt improved most from adding explicit negatives ("no em dashes", "no filler openers", "no 'I hope this finds you well'") and concrete length caps, not from clever positive instructions. What the model should not do turned out to be more important to specify than what it should.
-
 
 ## 7. Where the Design Broke: One Flag Carrying Two Facts
 
