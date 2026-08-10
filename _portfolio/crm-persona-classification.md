@@ -1,6 +1,6 @@
 ---
 title: "Classifying CRM Contacts into Sales Personas"
-excerpt: "A two-stage classifier that assigns a persona to every contact in a sales CRM: deterministic rule matching first, an LLM for the residual. Built to be cheap, auditable, and honest about what it cannot classify.<br/><img src='/images/500x300.png'>"
+excerpt: "A two-stage classifier that assigns a persona to every contact in a sales CRM: deterministic rule matching first, an LLM for the residual. Built to be cheap, auditable, and honest about what it cannot classify."
 collection: portfolio
 ---
 
