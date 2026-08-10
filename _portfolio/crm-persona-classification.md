@@ -10,7 +10,7 @@ collection: portfolio
 
 ## Summary
 
-This project supported a Q2 outreach campaign for the B2B company where I interned. Its CRM contained several thousand contacts whose profile information was inconsistent and whose `Persona` field was mostly blank. To send tailored marketing emails to different ICP groups—such as investors, sales executives, and revenue operations leaders—the company first needed to classify each contact by persona.
+This project supported a Q2 outreach campaign for the B2B company where I interned. Its CRM contained several thousand contacts whose profile information was inconsistent and whose `Persona` field was mostly blank. To send tailored marketing emails to different ICP groups-such as investors, sales executives, and revenue operations leaders-the company first needed to classify each contact by persona.
 
 I approached this as a text classification problem, using job titles as the primary signal. I designed a two-stage system: a rule-based matcher classified clear cases, while a language model handled the remaining ambiguous titles. I created the persona framework, system architecture, and initial classification rules, then used AI tools to support later improvements and implementation.
 
@@ -19,20 +19,20 @@ I approached this as a text classification problem, using job titles as the prim
 
 Before getting into what makes titles hard to classify, it helps to say what "persona" means in this context and why the CRM needed one.
 
-In B2B sales, a **persona** is a functional category that a contact belongs to based on what they do for a living — not their industry, not their seniority in the abstract, but the specific role they play in a buying decision. A "CRO" and a "VP of Sales" are the same persona (both own revenue targets) even though their titles are different. A "Head of RevOps" and a "Chief Revenue Officer" are different personas even though both contain "revenue," because one runs the tooling and the other owns the number. Personas are what let a sales team stop treating every contact identically and instead tailor outreach, timing, and messaging to what a specific kind of buyer actually cares about.
+In B2B sales, a **persona** is a functional category that a contact belongs to based on what they do for a living - not their industry, not their seniority in the abstract, but the specific role they play in a buying decision. A "CRO" and a "VP of Sales" are the same persona (both own revenue targets) even though their titles are different. A "Head of RevOps" and a "Chief Revenue Officer" are different personas even though both contain "revenue," because one runs the tooling and the other owns the number. Personas are what let a sales team stop treating every contact identically and instead tailor outreach, timing, and messaging to what a specific kind of buyer actually cares about.
 
 For this CRM I worked with ten personas, chosen with the sales team to cover the roles they most often engaged with:
 
-- **PE / Value Creation** — operating partners, portfolio-ops roles at private equity firms
-- **Sales Executive / CRO** — sales leadership at director level and above
-- **Revenue Operations / Sales Operations** — RevOps, SalesOps, GTM operations
-- **Sales Enablement / Learning** — enablement and L&D roles supporting sales
-- **CEO / Founder** — CEOs, founders, and company-level presidents
-- **People / Talent / HR** — CHROs, People Ops, talent acquisition
-- **Product / Technology / Data** — CTOs, CPOs, engineering, data, analytics
-- **IT / Security** — CIOs, CISOs, IT infrastructure roles
-- **Investor** — venture partners, angel investors
-- **Advisor** — external advisors and consultants
+- **PE / Value Creation** - operating partners, portfolio-ops roles at private equity firms
+- **Sales Executive / CRO** - sales leadership at director level and above
+- **Revenue Operations / Sales Operations** - RevOps, SalesOps, GTM operations
+- **Sales Enablement / Learning** - enablement and L&D roles supporting sales
+- **CEO / Founder** - CEOs, founders, and company-level presidents
+- **People / Talent / HR** - CHROs, People Ops, talent acquisition
+- **Product / Technology / Data** - CTOs, CPOs, engineering, data, analytics
+- **IT / Security** - CIOs, CISOs, IT infrastructure roles
+- **Investor** - venture partners, angel investors
+- **Advisor** - external advisors and consultants
 
 The state of the CRM at the outset was that the persona field was blank for most contacts, so none of that segmentation was possible. A typical row looked something like this (The below data is just a sanitized example.):
 
@@ -42,11 +42,9 @@ The state of the CRM at the outset was that the persona field was blank for most
 
 *Illustrative row; not real contact data.*
 
-The information the sales team needed to know — that Jeff belongs in the IT / Security persona and should therefore be handled differently from someone in Sales Executive / CRO — was implicit in the title but never made explicit in the field that the rest of the workflow depended on. Multiply this by several thousand rows and the persona column becomes the bottleneck that everything downstream is quietly waiting on.
+The information the sales team needed to know - that Jeff belongs in the IT / Security persona and should therefore be handled differently from someone in Sales Executive / CRO - was implicit in the title but never made explicit in the field that the rest of the workflow depended on. Multiply this by several thousand rows and the persona column becomes the bottleneck that everything downstream is quietly waiting on.
 
-The CRM’s job-title data was messy and inconsistent. The same role could appear in several formats, while broad terms such as “president,” “data,” or “AI” could mean different things depending on context. Some fields were also blank, corrupted, or filled with placeholder text. As a result, simple keyword matching was not reliable. So the real problem is not lookup. It is normalizing inconsistent surface forms, disambiguating words by their local context, and controlling for ambiguity, before any classification can happen. Simple keyword matching, in short, was not reliable — the titles had to be normalized and processed with context-aware rules before a persona could be assigned.
-
-## Two-Stage Architecture: Rules First, LLM for the Residual
+The CRM’s job-title data was messy and inconsistent. The same role could appear in several formats, while broad terms such as “president,” “data,” or “AI” could mean different things depending on context. Some fields were also blank, corrupted, or filled with placeholder text. As a result, simple keyword matching was not reliable. So the real problem is not lookup. It is normalizing inconsistent surface forms, disambiguating words by their local context, and controlling for ambiguity, before any classification can happen. Simple keyword matching, in short, was not reliable - the titles had to be normalized and processed with context-aware rules before a persona could be assigned.
 
 ## Two-Stage Architecture: Rules First, LLM for the Residual
 
@@ -124,10 +122,10 @@ def pick_persona(raw_title):
         return None
     if len(matches) == 1:
         return list(matches.keys())[0]
-    return None  # multiple matches — unresolved
+    return None  # multiple matches - unresolved
 ​```
 
-Reading it now, the bug is obvious: when a title matched exactly one persona, the function returned that persona; when it matched two or more, the function returned `None`. The precedence list I had spent time building was never consulted at all. Every contact with a genuinely senior, multi-signal title — exactly the contacts that mattered most — was silently left unlabeled. Roughly 87 contacts were lost this way, and because the failure was silent, nothing crashed to tell me. I only found the bug by auditing why so many obviously senior titles had come back blank in the output.
+Reading it now, the bug is obvious: when a title matched exactly one persona, the function returned that persona; when it matched two or more, the function returned `None`. The precedence list I had spent time building was never consulted at all. Every contact with a genuinely senior, multi-signal title - exactly the contacts that mattered most - was silently left unlabeled. Roughly 87 contacts were lost this way, and because the failure was silent, nothing crashed to tell me. I only found the bug by auditing why so many obviously senior titles had come back blank in the output.
 
 The fix was to actually walk the precedence list in the multi-match case:
 
