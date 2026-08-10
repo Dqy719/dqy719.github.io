@@ -115,7 +115,7 @@ The first version I wrote had a bug that was quietly expensive, and finding it t
 
 The function was supposed to resolve titles that matched two or more personas by falling back to a precedence order. Here is what I originally wrote:
 
-​```python
+```python
 def pick_persona(raw_title):
     matches = match_title(raw_title)
     if not matches:
@@ -123,13 +123,13 @@ def pick_persona(raw_title):
     if len(matches) == 1:
         return list(matches.keys())[0]
     return None  # multiple matches - unresolved
-​```
+```
 
-Reading it now, the bug is obvious: when a title matched exactly one persona, the function returned that persona; when it matched two or more, the function returned `None`. The precedence list I had spent time building was never consulted at all. Every contact with a genuinely senior, multi-signal title - exactly the contacts that mattered most - was silently left unlabeled. Roughly 87 contacts were lost this way, and because the failure was silent, nothing crashed to tell me. I only found the bug by auditing why so many obviously senior titles had come back blank in the output.
+Reading it now, the bug is obvious: when a title matched exactly one persona, the function returned that persona; when it matched two or more, the function returned `None`. The precedence list I had spent time building was never consulted at all. Every contact with a genuinely senior, multi-signal title — exactly the contacts that mattered most — was silently left unlabeled. Roughly 87 contacts were lost this way, and because the failure was silent, nothing crashed to tell me. I only found the bug by auditing why so many obviously senior titles had come back blank in the output.
 
 The fix was to actually walk the precedence list in the multi-match case:
 
-​```python
+```python
 def pick_persona(raw_title):
     matches = match_title(raw_title)
     if not matches:
@@ -138,18 +138,18 @@ def pick_persona(raw_title):
         if persona in matches:
             return persona
     return None
-​```
+```
 
 I also added a junk filter for entries like "Wrong email ID" or "Vendor." These rows are flagged for cleanup instead of being assigned a persona. A `Persona_Match_Method` column records how each result was classified, making the output easier to review.
 
-### Stage 2: LLM Classification for the Residual
+## Stage 2: LLM Classification for the Residual
 
 The handoff between the two stages is a single boolean column that Stage 1 writes into the pandas DataFrame carrying the data through the whole pipeline:
 
-​```python
+```python
 # Flag rows that should go to stage 2 (LLM): blank persona, not junk
 df["Needs_Stage2_LLM"] = needs_fill & (df["Persona"] == "") & (df["Persona_Match_Method"] != "junk")
-​```
+```
 
 Stage 2 reads only the rows where this is true. Junk titles are deliberately excluded from the LLM entirely: there is no point paying a model to classify "Wrong email ID."
 
@@ -157,7 +157,7 @@ Stage 2 takes only the rows Stage 1 flagged and asks Claude Haiku to place them,
 
 Before spending any API calls, Stage 2 filters out inputs an LLM cannot reliably handle. Blank titles are skipped. So are garbled ones, and the garbage detector is where the linguistic care shows:
 
-​```python
+```python
 def is_garbled(title):
     if is_blank(title):
         return False
@@ -173,7 +173,7 @@ def is_garbled(title):
     if len(s) > 0 and non_ascii / len(s) > 0.5 and not has_cjk_or_hangul:
         return True
     return False
-​```
+```
 
 The subtle requirement here is that a high proportion of non-ASCII characters must not be treated as corruption on its own, because a legitimate Chinese, Japanese, Korean, or accented-Latin title would trip that wire. The detector explicitly exempts CJK and Hangul ranges, so it flags true mojibake while leaving real non-English titles alone. Getting this wrong would mean silently discarding every international contact.
 
