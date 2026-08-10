@@ -1,6 +1,6 @@
 ---
 title: "Automating Personalized Sales Outreach at PeopleLens"
-excerpt: "A production pipeline that generates personalized outreach drafts in a specific person's voice, built around a deliberate split between human judgment and machine composition.<br/><img src='/images/500x300.png'>"
+excerpt: "A production pipeline that generates personalized outreach drafts in a specific person's voice, built around a deliberate split between human judgment and machine composition."
 collection: portfolio
 ---
 
