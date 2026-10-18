@@ -7,8 +7,20 @@ author_profile: true
 
 {% include base_path %}
 
+Explore my work across product development,
+AI implementation, and business automation.
 
+## Product & Design
 {% for post in site.portfolio %}
-  {% include archive-single.html %}
+  {% if post.category == "Product & Design" %}
+   {% include archive-single.html %}
+  {% endif %}
 {% endfor %}
 
+## AI & Automation
+
+{% for post in site.portfolio %}
+  {% unless post.category == "Product & Design" %}
+    {% include archive-single.html %}
+  {% endunless %}
+{% endfor %}
