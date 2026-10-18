@@ -1,5 +1,5 @@
 ---
-title: "PeopleLens | From AI Prototyping to Product Adoption"
+title: "PeopleLens — From AI Prototyping to Product Adoption"
 collection: portfolio
 category: "Product & Design"
 permalink: /portfolio/peoplelens-product-case-study/
