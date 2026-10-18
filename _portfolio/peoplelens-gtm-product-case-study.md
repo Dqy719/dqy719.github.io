@@ -90,6 +90,29 @@ Introducing a new interface would create additional adoption friction.
 
 I therefore prioritized an approach that could fit into the team's existing Google Sheets and HubSpot workflow.
 
+
+<h3>GTM Workflow Analysis</h3>
+
+<p>
+I mapped the existing outreach workflow and identified
+opportunities for further automation.
+</p>
+
+<iframe
+  src="images/peoplelens_annotated_workflow.html"
+  width="100%"
+  height="650"
+  style="border:1px solid #ddd; border-radius:8px;"
+  title="PeopleLens GTM Workflow Analysis">
+</iframe>
+
+<p>
+  <a href="/images/peoplelens/workflow.html" target="_blank">
+    View the full interactive workflow ↗
+  </a>
+</p>
+
+
 ### A first principle
 
 **The goal was not to replace every manual step. It was to remove repetitive work without disrupting the parts of the process that already created value.**
