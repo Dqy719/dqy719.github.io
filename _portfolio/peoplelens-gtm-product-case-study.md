@@ -82,8 +82,9 @@ I created an end-to-end workflow diagram documenting how the team used HubSpot, 
 
 I then annotated the process to distinguish existing operations from opportunities for future automation.
 
+
 <iframe
-  src="/images/peoplelens/peoplelens_annotated_workflow.html"
+  src="/images/peoplelens_annotated_workflow.html"
   title="PeopleLens GTM Workflow Analysis"
   width="100%"
   height="750"
@@ -91,7 +92,10 @@ I then annotated the process to distinguish existing operations from opportuniti
   loading="lazy">
 </iframe>
 
-[View Full Workflow Diagram](images/peoplelens_annotated_workflow.html)
+<a href="/images/peoplelens_annotated_workflow.html" target="_blank">
+  View Full Workflow Diagram ↗
+</a>
+
 
 *Workflow analysis showing the team's existing outreach process, manual decision points, and proposed automation opportunities. Not all proposed capabilities were implemented.*
 
