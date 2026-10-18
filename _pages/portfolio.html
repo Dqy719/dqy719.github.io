@@ -7,11 +7,9 @@ author_profile: true
 
 {% include base_path %}
 
-Explore my work across product development,
-AI implementation, and business automation.
+<p>Explore my work across product development, AI implementation, and business automation.</p>
 
-
-## Product & Design
+<h2>Product &amp; Design</h2>
 
 {% for post in site.portfolio %}
   {% if post.category == "Product & Design" %}
@@ -19,7 +17,7 @@ AI implementation, and business automation.
   {% endif %}
 {% endfor %}
 
-## AI & Automation
+<h2>AI &amp; Automation</h2>
 
 {% for post in site.portfolio %}
   {% unless post.category == "Product & Design" %}
