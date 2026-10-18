@@ -1,5 +1,5 @@
 ---
-title: "Good Samaritan Shelter | Website Redesign"
+title: "Good Samaritan Shelter — Website Redesign"
 collection: portfolio
 category: "Product & Design"
 permalink: /portfolio/gss-redesign/
