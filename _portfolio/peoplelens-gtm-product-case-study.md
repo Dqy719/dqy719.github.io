@@ -67,50 +67,57 @@ But before building, I needed to understand which parts of the workflow were gen
 
 ---
 
+
 ## 03. Workflow Discovery: Finding Automation Opportunities
 
-I mapped the outreach process, including prospect sourcing, CRM review, personalization research, drafting, approval, sending, and follow-up.
+Before building a solution, I mapped the team's existing outreach workflow to understand how people, data, and decisions moved across different tools.
 
-The map also documented existing tools and opportunities for further automation.
+The process involved prospect sourcing, CRM review, personalization research, message drafting, approval, sending, and follow-up management.
 
-This helped distinguish three types of work:
+My goal was to identify **where automation could reduce repetitive work without disrupting the human judgment essential to personalized outreach.**
+
+### Mapping the Existing Workflow
+
+I created an end-to-end workflow diagram documenting how the team used HubSpot, LinkedIn, Google Sheets, and other GTM tools.
+
+I then annotated the process to distinguish existing operations from opportunities for future automation.
+
+<iframe
+  src="/images/peoplelens/peoplelens_annotated_workflow.html"
+  title="PeopleLens GTM Workflow Analysis"
+  width="100%"
+  height="750"
+  style="border: 1px solid #ddd; border-radius: 8px;"
+  loading="lazy">
+</iframe>
+
+[View Full Workflow Diagram](images/peoplelens_annotated_workflow.html)
+
+*Workflow analysis showing the team's existing outreach process, manual decision points, and proposed automation opportunities. Not all proposed capabilities were implemented.*
+
+### Identifying Opportunities
+
+The workflow analysis helped me distinguish between repetitive operational tasks and activities that required human judgment.
 
 | Activity | Product consideration |
 |---|---|
 | Contact records and engagement history | Integrate existing data rather than duplicate it |
-| Contact classification | Use transparent rules where possible |
+| Contact classification | Use transparent, deterministic rules |
 | Personalization research | Preserve human contextual judgment |
-| Message composition | Explore AI-assisted generation |
+| Message composition | Explore AI-assisted drafting |
 | Final outreach approval | Keep human ownership |
-| Follow-up management | Evaluate automation as a later phase |
+| Follow-up management | Consider additional automation in a later phase |
 
-An important observation was that the team already had tools and habits for managing outreach.
+### The Key Product Decision
 
-Introducing a new interface would create additional adoption friction.
+One important discovery was that the team already had established workflows around Google Sheets and HubSpot.
 
-I therefore prioritized an approach that could fit into the team's existing Google Sheets and HubSpot workflow.
+Introducing a completely new interface would add another system to learn and potentially create adoption friction.
 
+Instead, I prioritized an MVP that worked with familiar tools and preserved the existing review process.
 
-<h3>GTM Workflow Analysis</h3>
+**Product takeaway:** Rather than automating the entire workflow at once, I focused on reducing the most immediate drafting bottleneck while minimizing disruption to how the team already worked.
 
-<p>
-I mapped the existing outreach workflow and identified
-opportunities for further automation.
-</p>
-
-<iframe
-  src="images/peoplelens_annotated_workflow.html"
-  width="100%"
-  height="650"
-  style="border:1px solid #ddd; border-radius:8px;"
-  title="PeopleLens GTM Workflow Analysis">
-</iframe>
-
-<p>
-  <a href="/images/peoplelens/workflow.html" target="_blank">
-    View the full interactive workflow ↗
-  </a>
-</p>
 
 
 ### A first principle
