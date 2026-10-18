@@ -86,7 +86,7 @@ The homepage design emphasized prominent actions such as **Get Help Now**, **Sea
 These elements connected to two central research themes: helping service seekers find actionable information quickly and helping donors understand and support GSS's work.
 
 
-![Good Samaritan Shelter homepage wireframe](/images/gss-case/Home page.png)
+![Good Samaritan Shelter homepage wireframe](/images/gss-case/homepage.png)
 
 *Homepage wireframe showing the primary service discovery, assistance, and donation entry points.*
 
